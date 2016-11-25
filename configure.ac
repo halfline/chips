@@ -9,7 +9,6 @@ m4_define([minor_version],[23])
 m4_define([micro_version],[0])
 m4_define([package_version],[major_version.minor_version.micro_version])
 m4_define([bug_report_url],[https://bugzilla.gnome.org/enter_bug.cgi?product=chips])
-m4_define([api_version],[major_version])
 
 AX_IS_RELEASE([micro-version])
 
@@ -31,7 +30,6 @@ dnl ***********************************************************************
 AC_SUBST([MAJOR_VERSION],major_version)
 AC_SUBST([MINOR_VERSION],minor_version)
 AC_SUBST([MICRO_VERSION],micro_version)
-AC_SUBST([API_VERSION],api_version)
 
 
 dnl ***********************************************************************
@@ -115,8 +113,7 @@ AC_CONFIG_FILES([
 	data/Makefile
 
 	po/Makefile.in
-],[],
-[API_VERSION='$API_VERSION'])
+])
 AC_OUTPUT
 
 echo ""
