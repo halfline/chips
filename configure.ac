@@ -84,6 +84,7 @@ dnl ***********************************************************************
 dnl Check for required packages
 dnl ***********************************************************************
 PKG_CHECK_MODULES(CHIPS, [gio-2.0 >= 2.42 gtk+-3.0 >= 3.20])
+CHIPS_CFLAGS="$CHIPS_CFLAGS -include \$(top_builddir)/config.h"
 CHIPS_LIBS="$CHIPS_LIBS $LIBM"
 
 dnl ***********************************************************************
