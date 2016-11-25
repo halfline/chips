@@ -83,7 +83,7 @@ AX_CHECK_COMPILE_FLAG([-std=gnu11],
 dnl ***********************************************************************
 dnl Check for required packages
 dnl ***********************************************************************
-PKG_CHECK_MODULES(CHIPS, [gio-2.0 >= 2.42 gtk+-3.0 >= 3.20])
+PKG_CHECK_MODULES(CHIPS, [gio-2.0 >= 2.42 gtk+-3.0 >= 3.20 epoxy >= 1.3 graphene-1.0 >= 1.4.0])
 CHIPS_CFLAGS="$CHIPS_CFLAGS -include \$(top_builddir)/config.h"
 CHIPS_CFLAGS="$CHIPS_CFLAGS -include \$(top_srcdir)/src/chips.h"
 CHIPS_LIBS="$CHIPS_LIBS $LIBM"

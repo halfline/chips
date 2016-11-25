@@ -26,6 +26,10 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 
+#include <epoxy/gl.h>
+
+#include <graphene.h>
+
 #include <gtk/gtk.h>
 
 #endif /* CHIPS_H */
