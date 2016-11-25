@@ -64,6 +64,8 @@ AC_PATH_PROG([GLIB_MKENUMS],[glib-mkenums])
 AC_PATH_PROG([GLIB_COMPILE_RESOURCES],[glib-compile-resources])
 PKG_PROG_PKG_CONFIG([0.22])
 
+AC_CHECK_LIBM
+
 GLIB_GSETTINGS
 GOBJECT_INTROSPECTION_CHECK([1.42.0])
 
@@ -82,6 +84,7 @@ dnl ***********************************************************************
 dnl Check for required packages
 dnl ***********************************************************************
 PKG_CHECK_MODULES(CHIPS, [gio-2.0 >= 2.42 gtk+-3.0 >= 3.20])
+CHIPS_LIBS="$CHIPS_LIBS $LIBM"
 
 dnl ***********************************************************************
 dnl Initialize Libtool
