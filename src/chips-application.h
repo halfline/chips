@@ -1,6 +1,6 @@
-/* main.c
+/* chips-applications.h
  *
- * Copyright (C) 2016 Ray Strode
+ * Copyright (C) 2016 Ray Strode <rstrode@redhat.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,19 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "chips-application.h"
+#ifndef CHIPS_APPLICATION_H
+#define CHIPS_APPLICATION_H
 
-int main(int   argc,
-         char *argv[])
-{
-  g_autoptr(GtkApplication) app = NULL;
-  int status;
+#define CHIPS_TYPE_APPLICATION chips_application_get_type ()
+G_DECLARE_FINAL_TYPE (ChipsApplication, chips_application, CHIPS, APPLICATION, GtkApplication);
 
-  app = g_object_new (CHIPS_TYPE_APPLICATION,
-                      "application-id", "org.gnome.Chips",
-                      NULL);
-
-  status = g_application_run (G_APPLICATION (app), argc, argv);
-
-  return status;
-}
+#endif /* CHIPS_APPLICATION_H */
