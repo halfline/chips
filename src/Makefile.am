@@ -1,6 +1,9 @@
 bin_PROGRAMS = chips
 
-chips_SOURCES = main.c
+chips_SOURCES = \
+	chips.h \
+	main.c
+
 chips_CFLAGS = $(CHIPS_CFLAGS)
 
 chips_LDADD = $(CHIPS_LIBS)
