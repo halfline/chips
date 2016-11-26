@@ -29,6 +29,7 @@ struct _ChipsMainWindow
         unsigned int vertex_array_id;
 
         unsigned int vertex_buffer_id;
+        unsigned int vertex_arrangement_id;
 
         unsigned int shader_program_id;
         unsigned int vertex_shader_id;
@@ -134,6 +135,8 @@ load_shader (ChipsMainWindow *self,
 static void
 load_vertices (ChipsMainWindow *self)
 {
+        size_t vertex_arrangement_size;
+
         glGenVertexArrays(1, &self->vertex_array_id);
         glBindVertexArray(self->vertex_array_id);
 
@@ -143,6 +146,14 @@ load_vertices (ChipsMainWindow *self)
         glBufferData (GL_ARRAY_BUFFER,
                       chips_3d_model_get_vertex_buffer_size (self->model),
                       chips_3d_model_get_vertex_buffer (self->model),
+                      GL_STATIC_DRAW);
+
+        vertex_arrangement_size = chips_3d_model_get_number_of_vertices (self->model) * sizeof (unsigned int);
+        glGenBuffers (1, &self->vertex_arrangement_id);
+        glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, self->vertex_arrangement_id);
+        glBufferData (GL_ELEMENT_ARRAY_BUFFER,
+                      vertex_arrangement_size,
+                      chips_3d_model_get_vertex_arrangement (self->model),
                       GL_STATIC_DRAW);
 
 }
@@ -213,15 +224,10 @@ on_gl_area_render (ChipsMainWindow *self)
         glClearColor (0.5, 0.5, 0.5, 1.0);
         glClear (GL_COLOR_BUFFER_BIT);
 
-        glBindBuffer (GL_ARRAY_BUFFER, self->vertex_buffer_id);
-        glEnableVertexAttribArray (self->position_attribute_id);
-
-        glDrawArrays (GL_TRIANGLES,
-                      0,
-                      chips_3d_model_get_number_of_vertices (self->model));
-
-        glDisableVertexAttribArray (self->position_attribute_id);
-        glBindBuffer (GL_ARRAY_BUFFER, 0);
+        glDrawElements (GL_TRIANGLES,
+                        chips_3d_model_get_number_of_vertices (self->model),
+                        GL_UNSIGNED_INT,
+                        0);
 
         return TRUE;
 }

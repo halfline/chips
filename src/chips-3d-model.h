@@ -15,6 +15,7 @@ const float * chips_3d_model_get_vertex_buffer      (Chips3DModel *self);
 size_t        chips_3d_model_get_vertex_buffer_size (Chips3DModel *self);
 
 unsigned int  chips_3d_model_get_number_of_vertices (Chips3DModel *self);
+unsigned int *chips_3d_model_get_vertex_arrangement (Chips3DModel *self);
 
 intptr_t      chips_3d_model_get_vertex_buffer_get_stride (Chips3DModel *self);
 intptr_t      chips_3d_model_get_vertex_buffer_get_offset (Chips3DModel *self);

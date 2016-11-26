@@ -7,6 +7,7 @@ typedef struct
         float        *vertex_buffer;
         size_t        vertex_buffer_size;
         unsigned int  number_of_vertices;
+        unsigned int *vertex_arrangement;
 } Chips3DModelPrivate;
 
 #define CHIPS_3D_MODEL_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), CHIPS_TYPE_3D_MODEL, Chips3DModelPrivate))
@@ -18,6 +19,7 @@ chips_3d_model_dispose (GObject *object)
         Chips3DModelPrivate *priv = CHIPS_3D_MODEL_GET_PRIVATE (self);
 
         g_clear_pointer (&priv->vertex_buffer, g_free);
+        g_clear_pointer (&priv->vertex_arrangement, g_free);
 
         G_OBJECT_CLASS (chips_3d_model_parent_class)->dispose (object);
 }
@@ -45,6 +47,7 @@ static void
 chips_3d_model_init (Chips3DModel *self)
 {
         Chips3DModelPrivate *priv = CHIPS_3D_MODEL_GET_PRIVATE (self);
+        size_t arrangement_buffer_size;
 
         priv->number_of_vertices = 3;
         priv->vertex_buffer_size = priv->number_of_vertices * 3 * sizeof (float);
@@ -54,6 +57,12 @@ chips_3d_model_init (Chips3DModel *self)
                              0.5, -0.5, 0.0,
                             -0.5, -0.5, 0.0  },
                 priv->vertex_buffer_size);
+
+        arrangement_buffer_size = priv->number_of_vertices * sizeof (unsigned int);
+        priv->vertex_arrangement = g_malloc (arrangement_buffer_size);
+        memcpy (priv->vertex_arrangement,
+                (unsigned int[]) { 0, 1, 2 },
+                arrangement_buffer_size);
 }
 
 const float *
@@ -78,6 +87,14 @@ chips_3d_model_get_number_of_vertices (Chips3DModel *self)
         Chips3DModelPrivate *priv = CHIPS_3D_MODEL_GET_PRIVATE (self);
 
         return priv->number_of_vertices;
+}
+
+unsigned int *
+chips_3d_model_get_vertex_arrangement (Chips3DModel *self)
+{
+        Chips3DModelPrivate *priv = CHIPS_3D_MODEL_GET_PRIVATE (self);
+
+        return priv->vertex_arrangement;
 }
 
 intptr_t
