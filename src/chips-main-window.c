@@ -16,12 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "chips-main-window.h"
+#include "chips-3d-model.h"
 
 struct _ChipsMainWindow
 {
         GtkWindow parent_object;
 
         GtkWidget *gl_area;
+
+        Chips3DModel *model;
 
         unsigned int vertex_array_id;
 
@@ -35,23 +38,6 @@ struct _ChipsMainWindow
 };
 
 G_DEFINE_TYPE (ChipsMainWindow, chips_main_window, GTK_TYPE_WINDOW);
-
-typedef struct ChipsVertexBuffer ChipsVertexBuffer;
-
-__attribute__ ((packed))
-struct ChipsVertexBuffer
-{
-        float x;
-        float y;
-        float z;
-};
-
-ChipsVertexBuffer test_vertices[] =
-{
-        { .x =  0.0, .y =  0.5 },
-        { .x =  0.5, .y = -0.5 },
-        { .x = -0.5, .y = -0.5 }
-};
 
 typedef enum
 {
@@ -81,6 +67,7 @@ chips_main_window_dispose (GObject *object)
 {
         ChipsMainWindow *self = CHIPS_MAIN_WINDOW (object);
 
+        g_clear_object (&self->model);
         G_OBJECT_CLASS (chips_main_window_parent_class)->dispose (object);
 }
 
@@ -152,9 +139,10 @@ load_vertices (ChipsMainWindow *self)
 
         glGenBuffers (1, &self->vertex_buffer_id);
         glBindBuffer (GL_ARRAY_BUFFER, self->vertex_buffer_id);
+
         glBufferData (GL_ARRAY_BUFFER,
-                      sizeof (test_vertices),
-                      (float *) &test_vertices,
+                      chips_3d_model_get_vertex_buffer_size (self->model),
+                      chips_3d_model_get_vertex_buffer (self->model),
                       GL_STATIC_DRAW);
 
 }
@@ -190,7 +178,9 @@ load_shaders (ChipsMainWindow *self)
                                3,
                                GL_FLOAT,
                                GL_FALSE,
-                               0, 0);
+                               chips_3d_model_get_vertex_buffer_get_stride (self->model),
+                               (void *)
+                               chips_3d_model_get_vertex_buffer_get_offset (self->model));
 }
 
 static void
@@ -226,7 +216,9 @@ on_gl_area_render (ChipsMainWindow *self)
         glBindBuffer (GL_ARRAY_BUFFER, self->vertex_buffer_id);
         glEnableVertexAttribArray (self->position_attribute_id);
 
-        glDrawArrays (GL_TRIANGLES, 0, G_N_ELEMENTS (test_vertices));
+        glDrawArrays (GL_TRIANGLES,
+                      0,
+                      chips_3d_model_get_number_of_vertices (self->model));
 
         glDisableVertexAttribArray (self->position_attribute_id);
         glBindBuffer (GL_ARRAY_BUFFER, 0);
@@ -260,4 +252,6 @@ chips_main_window_init (ChipsMainWindow *self)
         gtk_container_add (GTK_CONTAINER (self), self->gl_area);
 
         gtk_widget_show (self->gl_area);
+
+        self->model = g_object_new (CHIPS_TYPE_3D_MODEL, NULL);
 }

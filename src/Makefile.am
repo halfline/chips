@@ -2,6 +2,8 @@ bin_PROGRAMS = chips
 
 chips_SOURCES = \
 	chips.h \
+	chips-3d-model.h \
+	chips-3d-model.c \
 	chips-application.h \
 	chips-application.c \
 	chips-main-window.h \
