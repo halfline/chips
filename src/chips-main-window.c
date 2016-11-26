@@ -70,6 +70,7 @@ typedef enum
 static const char *vertex_shader =
 "#version 330\n"
 "in vec3 position;\n"
+"out vec3 color;\n"
 "uniform mat4 model_matrix;\n"
 "uniform mat4 view_matrix;\n"
 "uniform mat4 projection_matrix;\n"
@@ -77,14 +78,16 @@ static const char *vertex_shader =
 "main ()\n"
 "{\n"
 "        gl_Position = projection_matrix * view_matrix * model_matrix * vec4 (position, 1.0);\n"
+"        color = vec3 (1.0 - gl_Position.z/10.0, 1.0 - gl_Position.z/10.0, 1.0 - gl_Position.z/10.0);\n"
 "}\n";
 
 static const char *fragment_shader =
 "#version 330\n"
+"in vec3 color;\n"
 "out vec4 fragment_color;\n"
 "void main ()\n"
 "{\n"
-"        fragment_color = vec4 (1.0, 1.0, 1.0, 1.0);\n"
+"        fragment_color = vec4 (color, 1.0);\n"
 "}\n";
 
 static void
