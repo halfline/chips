@@ -27,6 +27,15 @@ struct _ChipsMainWindow
         Chips3DModel *model;
         GCancellable *model_init_cancellable;
 
+        graphene_vec3_t camera_position;
+        graphene_vec3_t camera_focal_point;
+        graphene_vec3_t camera_up_direction;
+
+        float field_of_view;
+        float aspect_ratio;
+        float near_plane;
+        float far_plane;
+
         unsigned int vertex_array_id;
 
         unsigned int vertex_buffer_id;
@@ -37,6 +46,15 @@ struct _ChipsMainWindow
         unsigned int fragment_shader_id;
 
         unsigned int position_attribute_id;
+
+        graphene_matrix_t model_matrix;
+        unsigned int model_matrix_id;
+
+        graphene_matrix_t view_matrix;
+        unsigned int view_matrix_id;
+
+        graphene_matrix_t projection_matrix;
+        unsigned int projection_matrix_id;
 
         unsigned int model_loaded : 1;
 };
@@ -51,11 +69,14 @@ typedef enum
 
 static const char *vertex_shader =
 "#version 330\n"
-"in vec2 position;\n"
+"in vec3 position;\n"
+"uniform mat4 model_matrix;\n"
+"uniform mat4 view_matrix;\n"
+"uniform mat4 projection_matrix;\n"
 "void\n"
 "main ()\n"
 "{\n"
-"        gl_Position = vec4 (position, 0.0, 1.0);\n"
+"        gl_Position = projection_matrix * view_matrix * model_matrix * vec4 (position, 1.0);\n"
 "}\n";
 
 static const char *fragment_shader =
@@ -139,6 +160,53 @@ load_shader (ChipsMainWindow *self,
 }
 
 static void
+place_camera (ChipsMainWindow   *self,
+              float              x,
+              float              y,
+              float              z,
+              graphene_matrix_t *view_matrix)
+{
+        graphene_vec3_t position, direction, front;
+        const graphene_vec3_t *top;
+
+        graphene_vec3_init (&position, x, y, z);
+
+        graphene_vec3_negate (graphene_vec3_z_axis (), &direction);
+        graphene_vec3_add (&position, &direction, &front);
+        graphene_vec3_normalize (&front, &front);
+
+        top = graphene_vec3_y_axis ();
+
+        graphene_matrix_init_look_at (view_matrix,
+                                      &position,
+                                      &front,
+                                      top);
+}
+
+static void
+load_matrices (ChipsMainWindow *self)
+{
+        GtkAllocation gl_area_allocation;
+
+        graphene_matrix_init_identity (&self->model_matrix);
+
+        place_camera (self, 1.5, 1.0, 5.0, &self->view_matrix);
+
+        gtk_widget_get_allocation (self->gl_area, &gl_area_allocation);
+
+        self->field_of_view = 45;
+        self->aspect_ratio = (1.0 * gl_area_allocation.width) / gl_area_allocation.height;
+        self->near_plane = 1.0;
+        self->far_plane = 10;
+
+        graphene_matrix_init_perspective (&self->projection_matrix,
+                                          self->field_of_view,
+                                          self->aspect_ratio,
+                                          self->near_plane,
+                                          self->far_plane);
+}
+
+static void
 load_vertices (ChipsMainWindow *self)
 {
         size_t vertex_arrangement_size;
@@ -189,7 +257,14 @@ load_shaders (ChipsMainWindow *self)
         glUseProgram (self->shader_program_id);
 
         self->position_attribute_id = glGetAttribLocation (self->shader_program_id, "position");
+        self->model_matrix_id = glGetUniformLocation (self->shader_program_id, "model_matrix");
+        self->view_matrix_id = glGetUniformLocation (self->shader_program_id, "view_matrix");
+        self->projection_matrix_id = glGetUniformLocation (self->shader_program_id, "projection_matrix");
+}
 
+static void
+upload_model_to_shaders (ChipsMainWindow *self)
+{
         glEnableVertexAttribArray (self->position_attribute_id);
         glVertexAttribPointer (self->position_attribute_id,
                                3,
@@ -198,6 +273,36 @@ load_shaders (ChipsMainWindow *self)
                                chips_3d_model_get_vertex_buffer_get_stride (self->model),
                                (void *)
                                chips_3d_model_get_vertex_buffer_get_offset (self->model));
+
+}
+
+static void
+upload_matrix_to_shaders (ChipsMainWindow   *self,
+                          unsigned int       matrix_id,
+                          graphene_matrix_t *matrix)
+{
+        float matrix_values[16];
+
+        graphene_matrix_to_float (matrix, matrix_values);
+        glUniformMatrix4fv(matrix_id,
+                           1,
+                           GL_FALSE,
+                           matrix_values);
+}
+
+static void
+upload_data_to_shaders (ChipsMainWindow *self)
+{
+        upload_model_to_shaders (self);
+        upload_matrix_to_shaders (self,
+                                  self->model_matrix_id,
+                                  &self->model_matrix);
+        upload_matrix_to_shaders (self,
+                                  self->view_matrix_id,
+                                  &self->view_matrix);
+        upload_matrix_to_shaders (self,
+                                  self->projection_matrix_id,
+                                  &self->projection_matrix);
 }
 
 static void
@@ -207,8 +312,10 @@ load_model_if_ready (ChipsMainWindow *self)
                 return;
         }
 
+        load_matrices (self);
         load_vertices (self);
         load_shaders (self);
+        upload_data_to_shaders (self);
 
         self->model_loaded = TRUE;
 }
