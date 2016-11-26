@@ -24,21 +24,65 @@ initable_init (GInitable     *initable,
         Chips3DModel *self = CHIPS_3D_MODEL (initable);
         Chips3DModelPrivate *priv = CHIPS_3D_MODEL_GET_PRIVATE (self);
         size_t arrangement_buffer_size;
+        size_t i;
+        static float vertices[] = {
+                -0.5f, -0.5f, -0.5f,
+                -0.5f,  0.5f, -0.5f,
+                 0.5f,  0.5f, -0.5f,
+                 0.5f,  0.5f, -0.5f,
+                 0.5f, -0.5f, -0.5f,
+                -0.5f, -0.5f, -0.5f,
 
-        priv->number_of_vertices = 3;
-        priv->vertex_buffer_size = priv->number_of_vertices * 3 * sizeof (float);
+                -0.5f, -0.5f,  0.5f,
+                 0.5f, -0.5f,  0.5f,
+                 0.5f,  0.5f,  0.5f,
+                 0.5f,  0.5f,  0.5f,
+                -0.5f,  0.5f,  0.5f,
+                -0.5f, -0.5f,  0.5f,
+
+                -0.5f,  0.5f,  0.5f,
+                -0.5f,  0.5f, -0.5f,
+                -0.5f, -0.5f, -0.5f,
+                -0.5f, -0.5f, -0.5f,
+                -0.5f, -0.5f,  0.5f,
+                -0.5f,  0.5f,  0.5f,
+
+                 0.5f,  0.5f,  0.5f,
+                 0.5f, -0.5f,  0.5f,
+                 0.5f, -0.5f, -0.5f,
+                 0.5f, -0.5f, -0.5f,
+                 0.5f,  0.5f, -0.5f,
+                 0.5f,  0.5f,  0.5f,
+
+                -0.5f, -0.5f, -0.5f,
+                 0.5f, -0.5f, -0.5f,
+                 0.5f, -0.5f,  0.5f,
+                 0.5f, -0.5f,  0.5f,
+                -0.5f, -0.5f,  0.5f,
+                -0.5f, -0.5f, -0.5f,
+
+                -0.5f,  0.5f, -0.5f,
+                -0.5f,  0.5f,  0.5f,
+                 0.5f,  0.5f,  0.5f,
+                 0.5f,  0.5f,  0.5f,
+                 0.5f,  0.5f, -0.5f,
+                -0.5f,  0.5f, -0.5f,
+        };
+
+        priv->number_of_vertices = G_N_ELEMENTS (vertices) / 3;
+        priv->vertex_buffer_size = sizeof (vertices);
+
         priv->vertex_buffer = g_malloc (priv->vertex_buffer_size);
         memcpy (priv->vertex_buffer,
-                (float[]) {  0.0,  0.5, 0.0,
-                             0.5, -0.5, 0.0,
-                            -0.5, -0.5, 0.0  },
+                vertices,
                 priv->vertex_buffer_size);
 
         arrangement_buffer_size = priv->number_of_vertices * sizeof (unsigned int);
         priv->vertex_arrangement = g_malloc (arrangement_buffer_size);
-        memcpy (priv->vertex_arrangement,
-                (unsigned int[]) { 0, 1, 2 },
-                arrangement_buffer_size);
+
+        for (i = 0; i < priv->number_of_vertices; i++) {
+                priv->vertex_arrangement[i] = i;
+        }
 
         return TRUE;
 }
@@ -126,7 +170,7 @@ chips_3d_model_get_vertex_arrangement (Chips3DModel *self)
 intptr_t
 chips_3d_model_get_vertex_buffer_get_stride (Chips3DModel *self)
 {
-        return 0;
+        return 3 * sizeof (float);
 }
 
 intptr_t
