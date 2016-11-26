@@ -4,6 +4,8 @@ chips_SOURCES = \
 	chips.h \
 	chips-application.h \
 	chips-application.c \
+	chips-main-window.h \
+	chips-main-window.c \
 	main.c
 
 chips_CFLAGS = $(CHIPS_CFLAGS)

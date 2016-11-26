@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "chips-application.h"
+#include "chips-main-window.h"
 
 struct _ChipsApplication
 {
@@ -57,7 +58,7 @@ activate_main_window (ChipsApplication *self)
                 return;
         }
 
-        self->main_window = g_object_new (GTK_TYPE_WINDOW, NULL);
+        self->main_window = g_object_new (CHIPS_TYPE_MAIN_WINDOW, NULL);
         gtk_application_add_window (GTK_APPLICATION (self), GTK_WINDOW (self->main_window));
         gtk_widget_show (self->main_window);
 }
