@@ -25,6 +25,7 @@ struct _ChipsMainWindow
         GtkWidget *gl_area;
 
         Chips3DModel *model;
+        GCancellable *model_init_cancellable;
 
         unsigned int vertex_array_id;
 
@@ -36,6 +37,8 @@ struct _ChipsMainWindow
         unsigned int fragment_shader_id;
 
         unsigned int position_attribute_id;
+
+        unsigned int model_loaded : 1;
 };
 
 G_DEFINE_TYPE (ChipsMainWindow, chips_main_window, GTK_TYPE_WINDOW);
@@ -67,6 +70,9 @@ static void
 chips_main_window_dispose (GObject *object)
 {
         ChipsMainWindow *self = CHIPS_MAIN_WINDOW (object);
+
+        g_cancellable_cancel (self->model_init_cancellable);
+        g_clear_object (&self->model_init_cancellable);
 
         g_clear_object (&self->model);
         G_OBJECT_CLASS (chips_main_window_parent_class)->dispose (object);
@@ -195,6 +201,19 @@ load_shaders (ChipsMainWindow *self)
 }
 
 static void
+load_model_if_ready (ChipsMainWindow *self)
+{
+        if (self->model == NULL || self->model_loaded) {
+                return;
+        }
+
+        load_vertices (self);
+        load_shaders (self);
+
+        self->model_loaded = TRUE;
+}
+
+static void
 on_gl_area_realized (ChipsMainWindow *self)
 {
         g_autoptr (GError) error = NULL;
@@ -203,8 +222,7 @@ on_gl_area_realized (ChipsMainWindow *self)
                 g_error ("%s", error->message);
         }
 
-        load_vertices (self);
-        load_shaders (self);
+        load_model_if_ready (self);
 }
 
 static void
@@ -224,12 +242,38 @@ on_gl_area_render (ChipsMainWindow *self)
         glClearColor (0.5, 0.5, 0.5, 1.0);
         glClear (GL_COLOR_BUFFER_BIT);
 
+        if (self->model == NULL) {
+                return FALSE;
+        }
+
         glDrawElements (GL_TRIANGLES,
                         chips_3d_model_get_number_of_vertices (self->model),
                         GL_UNSIGNED_INT,
                         0);
 
         return TRUE;
+}
+
+static void
+on_3d_model_initialized (GAsyncInitable  *initable,
+                         GAsyncResult    *result,
+                         ChipsMainWindow *self)
+{
+        GObject *model;
+        g_autoptr (GError) error = NULL;
+
+        model = g_async_initable_new_finish (initable, result, &error);
+
+        if (model == NULL) {
+                g_warning ("failed to load model: %s", error->message);
+                return;
+        }
+
+        self->model = CHIPS_3D_MODEL (model);
+
+        g_clear_object (&self->model_init_cancellable);
+
+        load_model_if_ready (self);
 }
 
 static void
@@ -259,5 +303,12 @@ chips_main_window_init (ChipsMainWindow *self)
 
         gtk_widget_show (self->gl_area);
 
-        self->model = g_object_new (CHIPS_TYPE_3D_MODEL, NULL);
+        self->model_init_cancellable = g_cancellable_new ();
+        g_async_initable_new_async (CHIPS_TYPE_3D_MODEL,
+                                    G_PRIORITY_DEFAULT,
+                                    self->model_init_cancellable,
+                                    (GAsyncReadyCallback)
+                                    on_3d_model_initialized,
+                                    self,
+                                    NULL);
 }
