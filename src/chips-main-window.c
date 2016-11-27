@@ -132,6 +132,7 @@ initialize_gl (ChipsMainWindow  *self,
         }
 
         glEnable (GL_DEPTH_TEST);
+        glEnable (GL_CULL_FACE);
 
         return TRUE;
 }
