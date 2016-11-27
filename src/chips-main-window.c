@@ -24,6 +24,11 @@ struct _ChipsMainWindow
 
         GtkWidget *gl_area;
 
+        GtkGesture *zoom_gesture;
+        double      scale;
+
+        GtkGesture *drag_gesture;
+
         Chips3DModel *model;
         GCancellable *model_init_cancellable;
 
@@ -289,6 +294,7 @@ upload_matrix_to_shaders (ChipsMainWindow   *self,
 {
         float matrix_values[16];
 
+        glUseProgram (self->shader_program_id);
         graphene_matrix_to_float (matrix, matrix_values);
         glUniformMatrix4fv(matrix_id,
                            1,
@@ -368,6 +374,79 @@ on_gl_area_render (ChipsMainWindow *self)
 }
 
 static void
+on_gl_area_pinched (ChipsMainWindow *self)
+{
+#if 0
+        graphene_matrix_t model_matrix;
+        double scale;
+
+        scale = gtk_gesture_zoom_get_scale_delta (GTK_GESTURE_ZOOM (self->zoom_gesture));
+
+        graphene_matrix_init_from_matrix (&model_matrix, &self->model_matrix);
+
+        graphene_matrix_scale (&model_matrix, scale, scale, scale);
+        upload_matrix_to_shaders (self,
+                                  self->model_matrix_id,
+                                  &model_matrix);
+#endif
+        graphene_matrix_t view_matrix;
+        graphene_vec3_t scale_vector, camera_vector;
+        double scale;
+
+        scale = gtk_gesture_zoom_get_scale_delta (GTK_GESTURE_ZOOM (self->zoom_gesture));
+
+        graphene_matrix_init_from_matrix (&view_matrix, &self->view_matrix);
+        graphene_vec3_init (&scale_vector, 0.0, 0.0, scale);
+        graphene_vec3_add (&self->camera_position, &scale_vector, &camera_vector);
+        graphene_matrix_init_look_at (&self->view_matrix,
+                                      &camera_vector,
+                                      &self->camera_focal_point,
+                                      &self->camera_up_direction);
+
+        upload_matrix_to_shaders (self,
+                                  self->view_matrix_id,
+                                  &view_matrix);
+        gtk_widget_queue_draw (self->gl_area);
+}
+
+static void
+on_gl_area_dragged (ChipsMainWindow *self,
+                    double           offset_x,
+                    double           offset_y)
+{
+        graphene_matrix_t model_matrix;
+        graphene_matrix_t model_view_matrix;
+        graphene_matrix_t model_view_projection_matrix;
+        graphene_matrix_t inverse_matrix;
+
+        graphene_vec4_t rotation_vector, transformed_vector, normalized_vector;
+        graphene_matrix_init_from_matrix (&model_matrix, &self->model_matrix);
+        graphene_matrix_multiply (&self->view_matrix, &self->model_matrix, &model_view_matrix);
+        graphene_matrix_multiply (&self->projection_matrix, &model_view_matrix, &model_view_projection_matrix);
+        graphene_matrix_inverse (&model_view_projection_matrix, &inverse_matrix);
+
+        graphene_vec4_init (&rotation_vector,
+                            offset_x,
+                            offset_y,
+                            0.0,
+                            0.0);
+
+        graphene_matrix_transform_vec4 (&inverse_matrix, &rotation_vector, &transformed_vector);
+        graphene_vec4_normalize (&transformed_vector, &normalized_vector);
+
+        graphene_matrix_rotate_y (&model_matrix,
+                                  graphene_vec4_get_x (&transformed_vector));
+        graphene_matrix_rotate_x (&model_matrix,
+                                  graphene_vec4_get_y (&transformed_vector));
+
+        upload_matrix_to_shaders (self,
+                                  self->model_matrix_id,
+                                  &model_matrix);
+
+        gtk_widget_queue_draw (self->gl_area);
+}
+
+static void
 on_3d_model_initialized (GAsyncInitable  *initable,
                          GAsyncResult    *result,
                          ChipsMainWindow *self)
@@ -397,6 +476,9 @@ chips_main_window_init (ChipsMainWindow *self)
 
         self->gl_area = g_object_new (GTK_TYPE_GL_AREA, NULL);
 
+        gtk_widget_add_events (self->gl_area,
+                               GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_POINTER_MOTION_MASK | GDK_TOUCH_MASK);
+
         g_signal_connect_swapped (self->gl_area,
                                   "realize",
                                   G_CALLBACK (on_gl_area_realized),
@@ -415,6 +497,24 @@ chips_main_window_init (ChipsMainWindow *self)
         gtk_container_add (GTK_CONTAINER (self), self->gl_area);
 
         gtk_widget_show (self->gl_area);
+
+        self->scale = 1.0;
+
+        self->zoom_gesture = gtk_gesture_zoom_new (self->gl_area);
+        g_signal_connect_swapped (self->zoom_gesture,
+                                  "scale-changed",
+                                  G_CALLBACK (on_gl_area_pinched),
+                                  self);
+        gtk_event_controller_set_propagation_phase (GTK_EVENT_CONTROLLER (self->zoom_gesture),
+                                                    GTK_PHASE_BUBBLE);
+
+        self->drag_gesture = gtk_gesture_drag_new (self->gl_area);
+        g_signal_connect_swapped (self->drag_gesture,
+                                  "drag-update",
+                                  G_CALLBACK (on_gl_area_dragged),
+                                  self);
+        gtk_event_controller_set_propagation_phase (GTK_EVENT_CONTROLLER (self->drag_gesture),
+                                                    GTK_PHASE_BUBBLE);
 
         self->model_init_cancellable = g_cancellable_new ();
         g_async_initable_new_async (CHIPS_TYPE_3D_MODEL,
